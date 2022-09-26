@@ -36,13 +36,6 @@ int main()
     serverAddr.sin_port = htons(SERVER_PORT);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int on = 1;
-    r = setsockopt(passiveSock, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof(on));
-    if (r == SOCKET_ERROR) {
-        std::cerr << "setsockopt failed with error " << WSAGetLastError() << std::endl;
-        return 1;
-    }
-
     r = bind(passiveSock, (sockaddr*)&serverAddr, sizeof(serverAddr));
     if (r == SOCKET_ERROR) {
         std::cerr << "bind failed with error " << WSAGetLastError() << std::endl;
@@ -58,11 +51,12 @@ int main()
         return 1;
     }
 
+    // 끊어지지 않고 남아있는 active socket 들을 기억한다.
     std::set<int> allActiveSockets;
 
     std::cout << "Waiting for a connection" << std::endl;
     while (true) {
-
+        // 읽기 이벤트를 위한 구조체 및 초기화
         fd_set rset;
         FD_ZERO(&rset);
 
@@ -101,6 +95,7 @@ int main()
 
             // 다음 번에 active socket 에 대해서 읽기 이벤트가 있는지 확인하기 위해서 저장한다.
             allActiveSockets.insert(activeSock);
+            std::cout << "New active socket " << activeSock << std::endl;
         }
 
         // allActiveSockets 의 loop 를 돌면서 거기서 값을 빼면 안되니
@@ -109,22 +104,24 @@ int main()
 
         // active socket 들에 대해서 읽기 가능인지 확인한다.
         for (auto activeSock : allActiveSockets) {
+            // 읽기 이벤트가 발생하지 않은 소켓이라면 무시한다.
             if (FD_ISSET(activeSock, &rset) == false) {
                 continue;
             }
 
             // socket 으로부터 데이터를 받는다.
-            std::cout << "Receiving stream" << std::endl;
+            std::cout << "[" << activeSock << "] Receiving stream" << std::endl;
             char buf[65536 * 2];
             r = recv(activeSock, buf, sizeof(buf), 0);
             if (r == SOCKET_ERROR) {
-                std::cerr << "recv failed with error " << WSAGetLastError() << std::endl;
-                return 1;
+                std::cerr << "[" << activeSock << "] recv failed with error " << WSAGetLastError() << std::endl;
+                closedSockets.insert(activeSock);
+                continue;
             }
 
             // 소켓에서 0 byte 를 읽으면 소켓이 닫혔다는 뜻이다.
             if (r == 0) {
-                std::cout << "socket closed" << std::endl;
+                std::cout << "[" << activeSock << "] socket closed" << std::endl;
 
                 // 닫힌 소켓을 for 밖에서 제거하기 위해서 기억한다.
                 closedSockets.insert(activeSock);
@@ -132,12 +129,13 @@ int main()
                 // 이 특정 연결의 activeSock 을 닫는다.
                 r = closesocket(activeSock);
                 if (r == SOCKET_ERROR) {
-                    std::cerr << "closesocket(acitve) failed with error " << WSAGetLastError() << std::endl;
-                    return 1;
+                    std::cerr << "[" << activeSock << "] closesocket(acitve) failed with error " << WSAGetLastError() << std::endl;
+                    closedSockets.insert(activeSock);
+                    continue;
                 }
             }
             else {
-                std::cout << "Received " << r << " bytes" << std::endl;
+                std::cout << "[" << activeSock << "] Received " << r << " bytes" << std::endl;
             }
         }
 
