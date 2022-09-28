@@ -1,9 +1,38 @@
-﻿#include "rapidjson/document.h"
+﻿#define RAPIDJSON_HAS_STDSTRING 1
+
+#include <iostream>
+#include <string>
+
+#include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#include <iostream>
 
 using namespace rapidjson;
+
+class Person {
+private:
+    int id;
+    std::string name;
+
+public:
+    Person(int i, const std::string& name);
+    std::string toJson() const;
+};
+
+
+Person::Person(int id, const std::string &name)
+    : id(id), name(name) {
+    // 빈 구현
+}
+
+
+std::string Person::toJson() const {
+    Document d;
+    d.SetObject();
+
+    // TODO: 여기를 채운다.
+    return "";
+}
 
 int main() {
     // 1. JSON 문자열을 파싱해서 DOM 으로 구조화 한다.
@@ -15,12 +44,6 @@ int main() {
     Value& s = d["stars"];
     s.SetInt(s.GetInt() + 1);
     
-    Value a(kArrayType);
-    a.PushBack("Luffy", d.GetAllocator());
-    a.PushBack("Nami", d.GetAllocator());
-
-    d.AddMember("students", a, d.GetAllocator());
-
     // 3. DOM 내용을 다시 문자열로 변경한다.
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
@@ -28,5 +51,9 @@ int main() {
 
     // 문자열을 다시 출력한다. {"project":"rapidjson","stars":11}
     std::cout << buffer.GetString() << std::endl;
+
+    Person p = Person(1000, "Luffy");
+    std::cout << p.toJson() << std::endl;
+
     return 0;
 }
