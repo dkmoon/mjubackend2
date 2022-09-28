@@ -16,6 +16,7 @@ private:
 
 public:
     Person(int i, const std::string& name);
+    Person(const std::string& jsonString);
     std::string toJson() const;
 };
 
@@ -23,6 +24,11 @@ public:
 Person::Person(int id, const std::string &name)
     : id(id), name(name) {
     // 빈 구현
+}
+
+
+Person::Person(const std::string& jsonString) {
+    // TODO: 여기를 구현하라
 }
 
 
@@ -36,7 +42,7 @@ std::string Person::toJson() const {
 
 int main() {
     // 1. JSON 문자열을 파싱해서 DOM 으로 구조화 한다.
-    const char* json = "{\"project\":\"rapidjson\",\"stars\":10}";
+    const std::string json = "{\"project\":\"rapidjson\",\"stars\":10}";
     Document d;
     d.Parse(json);
 
@@ -54,6 +60,10 @@ int main() {
 
     Person p = Person(1000, "Luffy");
     std::cout << p.toJson() << std::endl;
+
+    const std::string namiJsonStr = "{\"id\":1000,\"name\":\"Nami\"}";
+    Person nami = Person(namiJsonStr);
+    std::cout << nami.toJson() << std::endl;
 
     return 0;
 }
